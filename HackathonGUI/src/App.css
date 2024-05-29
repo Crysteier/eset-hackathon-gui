@@ -16,7 +16,14 @@
 }
 
 .centered-input {
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto;
+  gap: 10px;
+}
+
+.centered-input textarea:nth-child(1) {
+  grid-column: span 2;
 }
 
 .centered {

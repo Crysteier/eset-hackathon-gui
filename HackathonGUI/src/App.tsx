@@ -23,11 +23,16 @@ class RequestData {
   }
 }
 
-const simpleContext = `Use the following pieces of context to answer the question at the end.
+const simpleSystemMsg = `Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 Use three sentences maximum and keep the answer as concise as possible.
 Provide sources (document name) for your answer.
 Format your answer into json format with following structure: {ansWer: 'answer', source: 'source' }`
+
+const simpleContextMsg = `Given a chat history and the latest user question 
+    which might reference context in the chat history, formulate a standalone question 
+    which can be understood without the chat history. Do NOT answer the question,
+    just reformulate it if needed and otherwise return it as is.`
 
 function App() {
   const [activeChat, setActiveChat] = useState('one');
@@ -37,7 +42,9 @@ function App() {
     three: []
   });
   const [input, setInput] = useState('');
-  const [systemText, setSystemText] = useState(simpleContext);
+  const [systemText, setSystemText] = useState(simpleSystemMsg);
+  const [contextMessage, setContextMessage] = useState(simpleContextMsg);
+  const [temperature, setTemperature] = useState('0.7');
   let active = '';
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,6 +54,14 @@ function App() {
 
   const handleSystemInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSystemText(event.target.value);
+  }
+
+  const handleContextInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContextMessage(event.target.value);
+  }
+
+  const handleTemperatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTemperature(event.target.value);
   }
 
   const handleButtonClick = async () => {
@@ -63,18 +78,28 @@ function App() {
       active = 'functionCalling';
     }
 
-    console.log(systemText);
     setChats(prevChats => ({
       ...prevChats,
       [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: input, type: 'user' }]
     }));
+
+    const body = {
+      question: input.trim(),
+      messages: [
+        {
+          systemMessage: systemText, // Replace with the actual system message
+          contextMessage: contextMessage // Replace with the actual context message
+        }
+      ],
+      temperature: temperature // Replace with the actual temperature
+    };
 
     const response = await fetch(`http://127.0.0.1:5000/${active}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ question: input.trim() })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -88,13 +113,15 @@ function App() {
 
         setChats(prevChats => ({
           ...prevChats,
-          [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData.answer, type: 'response' }]
+          [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData?.answer, type: 'response' }]
         }));
 
-        setChats(prevChats => ({
-          ...prevChats,
-          [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData.source, type: 'response' }]
-        }));
+        if (responseData.source) {
+          setChats(prevChats => ({
+            ...prevChats,
+            [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData?.source, type: 'response' }]
+          }))
+        };
       } catch (error) {
         alert('Failed to parse response with error: ' + error);
       } finally {
@@ -124,13 +151,6 @@ function App() {
       </div>
       <div className='centered-input'>
         <textarea
-          placeholder='Here you need to write the system prompt to give the llm identity.'
-          rows={4}
-          cols={50}
-          value={systemText}
-          onChange={handleSystemInputChange}
-          disabled={isLoading} />
-        <textarea
           placeholder='Write your question here.'
           rows={4}
           cols={50}
@@ -138,8 +158,38 @@ function App() {
           onChange={handleInputChange}
           disabled={isLoading}
         />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <label style={{ margin: '5px' }}>System: </label>
+          <textarea
+            placeholder='Here you need to write the SYSTEM prompt to give the llm identity.'
+            rows={4}
+            cols={50}
+            value={systemText}
+            onChange={handleSystemInputChange}
+            disabled={isLoading}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <label style={{ margin: '5px' }}>Context: </label>
+          <textarea
+            placeholder='Here you need to write the CONTEXT prompt for the history chat.'
+            rows={4}
+            cols={50}
+            value={contextMessage}
+            onChange={handleContextInputChange}
+            disabled={isLoading || activeChat !== 'two'}
+          />
+        </div>
+
       </div>
-      <button disabled={isLoading} onClick={handleButtonClick}>Send</button>
+      <div>
+        <label>Temperature: </label>
+        <input type="number" min="0.0" max="1.0" step="0.1" value={temperature} onChange={handleTemperatureChange} />
+      </div>
+      <button
+        style={{ backgroundColor: 'blue', color: 'white', margin: '5px' }}
+        disabled={isLoading}
+        onClick={handleButtonClick}>Send</button>
     </div>
   );
 }
