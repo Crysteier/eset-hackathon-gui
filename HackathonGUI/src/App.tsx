@@ -7,27 +7,14 @@ class ResponseData {
 
   constructor(data: any) {
     this.answer = data.answer;
-    this.source = "Sources: " + data.source ? data.source : "No sources provided";
-  }
-}
-
-class RequestData {
-  question: string;
-  systemText: string;
-  systemContext: string;
-
-  constructor(question: string, systemText: string, systemContext: string) {
-    this.question = question;
-    this.systemText = systemText;
-    this.systemContext = systemContext;
+    this.source = data.source ? "Sources: " + data.source : "No sources provided";
   }
 }
 
 const simpleSystemMsg = `Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 Use three sentences maximum and keep the answer as concise as possible.
-Provide sources (document name) for your answer.
-Format your answer into json format with following structure: {ansWer: 'answer', source: 'source' }`
+Provide sources (document name) for your answer.`
 
 const simpleContextMsg = `Given a chat history and the latest user question 
     which might reference context in the chat history, formulate a standalone question 
@@ -42,7 +29,7 @@ function App() {
     three: []
   });
   const [input, setInput] = useState('');
-  const [systemText, setSystemText] = useState(simpleSystemMsg);
+  const [systemText, setSystemText] = useState('');
   const [contextMessage, setContextMessage] = useState(simpleContextMsg);
   const [temperature, setTemperature] = useState('0.7');
   let active = '';
@@ -65,6 +52,10 @@ function App() {
   }
 
   const handleButtonClick = async () => {
+    if (input.trim() === '') {
+      alert('Question cannot be empty');
+      return;
+    }
     setInput('');
     setIsLoading(true);
     //const requestData = new RequestData(input, systemText);
@@ -121,6 +112,7 @@ function App() {
             ...prevChats,
             [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData?.source, type: 'response' }]
           }))
+          console.log(responseData.source);
         };
       } catch (error) {
         alert('Failed to parse response with error: ' + error);
@@ -143,7 +135,7 @@ function App() {
         <button className={activeChat === 'three' ? 'active' : ''} onClick={() => handleRibbonClick('three')}>Functions</button>
       </div>
       <div className='chats-container'>
-        <div className='centered-input'>
+        <div>
           {(chats[activeChat]).map((message: { text: string, type: string }, index) => (
             <p key={index} className={message.type}>{message.text}</p>
           ))}
@@ -161,7 +153,7 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <label style={{ margin: '5px' }}>System: </label>
           <textarea
-            placeholder='Here you need to write the SYSTEM prompt to give the llm identity.'
+            placeholder='Here you need to write the SYSTEM prompt or leave empty to use default.'
             rows={4}
             cols={50}
             value={systemText}
@@ -172,7 +164,7 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <label style={{ margin: '5px' }}>Context: </label>
           <textarea
-            placeholder='Here you need to write the CONTEXT prompt for the history chat.'
+            placeholder='Here you can write the CONTEXT prompt for the history chat or leave empty for default.'
             rows={4}
             cols={50}
             value={contextMessage}

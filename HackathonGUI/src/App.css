@@ -29,7 +29,7 @@
 .centered {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: left;
 }
 
 .centered-top {
@@ -39,10 +39,6 @@
   /* Adjust this value to suit your needs */
 }
 
-.centered-input textarea,
-.centered-input button {
-  margin-top: auto;
-}
 
 button.active {
   border: 2px solid black;
