@@ -96,7 +96,7 @@ function App() {
           [activeChat]: [...prevChats[activeChat as keyof typeof chats], { text: responseData.source, type: 'response' }]
         }));
       } catch (error) {
-        alert('Failed to parse response');
+        alert('Failed to parse response with error: ' + error);
       } finally {
         setIsLoading(false);
       }
